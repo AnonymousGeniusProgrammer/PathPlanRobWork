@@ -1,0 +1,13 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Dev\Cpp\PathPlanRobWork\PathPlanRobWork\build\CMakeFiles\6cff0f63f46cb57e3810ca11e43624c2\generate.stamp.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{5DB63F8B-117E-3DFA-B112-BE7415219E96}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

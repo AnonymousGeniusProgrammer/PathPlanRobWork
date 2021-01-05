@@ -1,0 +1,55 @@
+<WorkCell name="Single PA10 Demo">
+
+ <SerialDevice name="Gantry">
+  <Frame name="Base">
+     <RPY> 0 0 180 </RPY>
+     <Pos> -0.2 0 1.2 </Pos>
+     <Drawable name="Gantry0Geo" refframe="Gantry0">
+         <Polytope file="Geometry/Gantry0" />
+     </Drawable>
+  </Frame>
+
+  <Joint name="Gantry1" type="Prismatic">
+     <RPY> 0 0 90 </RPY>
+     <Pos> 0 0 0 </Pos>
+     <Drawable name="Gantry1Geo" refframe="Gantry1">
+         <RPY> 0 0 0 </RPY> <Pos> 0 0 0 </Pos>
+         <Polytope file="Geometry/Gantry1" />
+     </Drawable>
+     <PosLimit min="-2.5" max="2.5" />
+     <VelLimit max="10" />
+     <AccLimit max="10" />
+  </Joint>
+
+  <Joint name="Gantry2" type="Prismatic">
+     <RPY> 0 -90 0 </RPY>
+     <Pos> -0.79 0 0 </Pos>
+     <Property name="ShowFrameAxis">true</Property>
+     <Drawable name="Gantry2Geo" refframe="Gantry2">
+         <RPY> 0 90 90 </RPY> <Pos> 0 0 0 </Pos>
+         <Polytope file="Geometry/Gantry2" />
+     </Drawable>
+     <PosLimit min="-1.58" max="0" />
+     <VelLimit max="10" />
+     <AccLimit max="10" />
+  </Joint>
+ </SerialDevice>
+
+ <Frame name="Environment" refframe="WORLD">
+    <RPY> 0 0 0 </RPY>
+    <Pos> 0 0 0 </Pos>
+    <Property name="ShowFrameAxis">true</Property>
+    <Drawable name="EnvironmentGeo" refframe="Environment">
+        <!-- <Polytope file="Geometry/Environment" /> -->
+        <Polytope file="../my_env" />
+    </Drawable>
+ </Frame>
+
+ <Frame name="PA10" refframe="Gantry.Gantry2">
+    <RPY> 90 90 0 </RPY>
+    <Pos> 0 0 0 </Pos>
+ </Frame>
+ <Include file="../MitsubishiPA10/pa10_dh.wc.xml" />
+
+ <CollisionSetup file="CollisionSetup.xml" />
+</WorkCell>
