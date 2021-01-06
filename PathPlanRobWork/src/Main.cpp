@@ -19,7 +19,9 @@
 #include <rwlibs/pathplanners/sbl/SBLPlanner.hpp>
 #include <rw/pathplanning/QIKSampler.hpp>
 // #include <rw/pathplanning/QConstraint.hpp>
-#include <direct.h>
+
+#include <fstream>
+//#include <iostream>
 using rw::common::ownedPtr;
 using rw::kinematics::State;
 using rw::loaders::WorkCellLoader;
@@ -41,6 +43,9 @@ using rw::math::Rotation3DVector;
 
 #define WC_FILE "/scenes/SinglePA10Demo/SinglePA10DemoGantry.wc.xml"
 
+void ofsStates(const Device::Ptr device, const std::vector<State> states, std::ofstream* ofs);
+
+void ofsResults(QPath result, std::ofstream* ofs);
 int main(int argc, char** argv)
 {
 	if (argc != 2) {
@@ -102,29 +107,71 @@ int main(int argc, char** argv)
 	//     RW_THROW ("Final configuration in collision! can not plan a path.");
 
 	QPath result;
+	std::ofstream qout;
+
+	//if (planner->query(beg, end, result)) {
+	//	qout.open("../../out/qout.txt");
+	//	qout << "Planned path with " << result.size();
+	//	qout << " configurations" << std::endl;
+	//	qout.close();
+	//}
+	//const Q endq = device->getQ(state); wrong way to get end state
+	
 	if (planner->query(beg, end, result)) {
 		std::cout << "Planned path with " << result.size();
 		std::cout << " configurations" << std::endl;
 	}
+	
+	const Q beg1 = result[result.size() - 1];
+	std::cout << beg1 << std::endl;
+	const Quaternion<> quat1 = Quaternion<> (sqrt(2)/2, 0.0, 0.0, -sqrt(2)/2);
+	 // const Rotation3D<> rot1 = Rotation3D<>(quat1);
+	const Vector3D<> trans1 = Vector3D<> (0.1, -0.1, 0.8);
+	const Transform3D<> end1 = Transform3D<>(trans1, quat1.toRotation3D());
 
-	// const Q beg1 = device->getQ(state);
-	// const Quaternion<> quat1 = Quaternion<> (sqrt(2)/2, 0.0, 0.0, -sqrt(2)/2);
-	// // const Rotation3D<> rot1 = Rotation3D<>(quat1);
-	// const Vector3D<> trans1 = Vector3D<> (0.1, -0.1, 0.8);
-	// const Transform3D<> end1 = Transform3D<>(trans1, quat1.toRotation3D());
-
-	// planner->query (beg1, end1, result);
+	if (planner->query(beg1, end1, result)) {
+		std::cout << "Planned path with " << result.size();
+		std::cout << " configurations" << std::endl;
+	}
 
 	const std::vector<State> states = Models::getStatePath(*device, result, state);
+	//ofsStates(device, states, &qout);
+	ofsResults(result, &qout);
+	std::cout << "I am here after ofsStates" << std::endl;
+	PathLoader::storeVelocityTimedStatePath(*wc, states, "../../out/ex-path-planning.rwplay");
+	std::cout << "I am here after sotreVelocityTimedStatePath" << std::endl;
+	//const std::vector<State> states = Models::getStatePath(*device, result, state);
+	//ofsStates(device, states, &qout);
+	
 	//int state_len = sizeof(states) / sizeof(states[0]); //wrong way to get size of states
-	const std::vector<double> config = device->getQ(states[1]).toStdVector();
-	for (int i = 0; i < 9; i++)
-	{
-		std::cout << config[i] << " ";
+	//const std::vector<double> config = device->getQ(states[1]).toStdVector();
+	//for (int i = 0; i < 9; i++)
+	//{
+	//	std::cout << config[i] << " ";
+	//}
+	//std::cout << states.size() << std::endl;
+	//std::cout << config.size() << std::endl; //9
+	////std::cout << state_len; //0
+}
+
+void ofsStates(const Device::Ptr device, std::vector<State> states, std::ofstream* ofs) 
+{
+	if (!ofs->is_open()) {
+		ofs->open("../../out/qout.txt");
 	}
-	std::cout << states.size() << std::endl;
-	std::cout << config.size() << std::endl; //9
-	//std::cout << state_len; //0
-	PathLoader::storeVelocityTimedStatePath(
-		*wc, states, "../../out/ex-path-planning.rwplay");
+	for (int i = 0; i < states.size(); i++) {
+		*ofs << device->getQ(states[i]) << std::endl;
+	}
+	ofs->close();
+}
+
+void ofsResults(QPath result, std::ofstream* ofs)
+{
+	if (!ofs->is_open()) {
+		ofs->open("../../out/qout.txt");
+	}
+	for (int i = 0; i < result.size(); i++) {
+		*ofs << result[i] << std::endl;
+	}
+	ofs->close();
 }
