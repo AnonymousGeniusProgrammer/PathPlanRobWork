@@ -42,10 +42,34 @@ using rw::math::Rotation3D;
 using rw::math::Rotation3DVector;
 
 #define WC_FILE "/scenes/SinglePA10Demo/SinglePA10DemoGantry.wc.xml"
+#define SQT_2_2 sqrt(2) / 2
+
+struct FCwp
+{
+	double px;
+	double py;
+	double pz;
+	double q0;
+	double q1;
+	double q2;
+	double q3;
+};
+
 
 void ofsStates(const Device::Ptr device, const std::vector<State> states, std::ofstream* ofs);
 
 void ofsResults(QPath result, std::ofstream* ofs);
+
+inline const Transform3D<> wpToTrans3D(FCwp* wp);
+
+void setFCwp(FCwp* wp, double px, double py, double pz, double q0, double q1, double q2, double q3);
+
+void plan(QToTPlanner::Ptr planner, Q beg, const Transform3D<> end, QPath* result);
+
+void planForWps(QToTPlanner::Ptr planner, std::vector< Q >& begs, QPath * result, std::vector<FCwp> wps);
+
+void genLineWps(std::vector<FCwp>* wps, double start, double end, int intpol);
+
 int main(int argc, char** argv)
 {
 	if (argc != 2) {
@@ -84,74 +108,101 @@ int main(int argc, char** argv)
 	const QIKSampler::Ptr ik_any = QIKSampler::make(device, defState, NULL, NULL, 25);
 	const QIKSampler::Ptr ik_cfree = QIKSampler::makeConstrained(ik_any, constraint, 25);
 
-	// const PlannerConstraint con    = PlannerConstraint::make (collisionDetector, device, defState);
-	// const QToQPlanner::Ptr planner = RRTPlanner::makeQToQPlanner (con, device);
 	const QToTPlanner::Ptr planner = SBLPlanner::makeQToTPlanner(sblsetup, ik_cfree);
 
-	// const Q beg (9, -0.67, -0.79, 2.8, -0.02, -1.01, -0.26, -0.77, -1.01, 0);
-	int dim = 9;
-	const Q beg(dim, 0, 0, 0, 0, 0, 0, 0, 0, 0);
-	// const Q end (dim, 0, 0, 0.62, 0, 0, 0, 0, 0, 0);
-	const Quaternion<> quat = Quaternion<>(sqrt(2) / 2, 0.0, 0.0, -sqrt(2) / 2);
-	// const Rotation3D<> rot = Rotation3D<>(quat);
-	const Vector3D<> trans = Vector3D<>(0.1, -0.1, 0.55);
-	const Transform3D<> end = Transform3D<>(trans, quat.toRotation3D());
-
+	// Set up base trajectory 
+	const int dim = 9;
+	const Q cinit(dim, 0, 0, 0, 0, 0, 0, 0, 0, 0);
 	ProximityData pdata;
 	State state = defState;
-	device->setQ(beg, state);
+	device->setQ(cinit, state);
 	if (collisionDetector->inCollision(state, pdata))
 		RW_THROW("Initial configuration in collision! can not plan a path.");
-	// device->setQ (end, state);
-	// if (collisionDetector->inCollision (state, pdata))
-	//     RW_THROW ("Final configuration in collision! can not plan a path.");
+	
+	// starting points for planning iterations
+	std::vector<Q> begs;
+	Q init = cinit;
+	begs.push_back(init);
+	
+	// ending opints for planning iterations
+	std::vector<FCwp> wps;
 
+	// resulting path in configuration space
 	QPath result;
 	std::ofstream qout;
-
-	//if (planner->query(beg, end, result)) {
-	//	qout.open("../../out/qout.txt");
-	//	qout << "Planned path with " << result.size();
-	//	qout << " configurations" << std::endl;
-	//	qout.close();
-	//}
-	//const Q endq = device->getQ(state); wrong way to get end state
 	
-	if (planner->query(beg, end, result)) {
-		std::cout << "Planned path with " << result.size();
-		std::cout << " configurations" << std::endl;
-	}
-	
-	const Q beg1 = result[result.size() - 1];
-	std::cout << beg1 << std::endl;
-	const Quaternion<> quat1 = Quaternion<> (sqrt(2)/2, 0.0, 0.0, -sqrt(2)/2);
-	 // const Rotation3D<> rot1 = Rotation3D<>(quat1);
-	const Vector3D<> trans1 = Vector3D<> (0.1, -0.1, 0.8);
-	const Transform3D<> end1 = Transform3D<>(trans1, quat1.toRotation3D());
+	genLineWps(&wps, 0.55, 0.8, 3);
 
-	if (planner->query(beg1, end1, result)) {
-		std::cout << "Planned path with " << result.size();
-		std::cout << " configurations" << std::endl;
-	}
+	planForWps(planner, begs, &result, wps);
 
 	const std::vector<State> states = Models::getStatePath(*device, result, state);
-	//ofsStates(device, states, &qout);
 	ofsResults(result, &qout);
 	std::cout << "I am here after ofsStates" << std::endl;
 	PathLoader::storeVelocityTimedStatePath(*wc, states, "../../out/ex-path-planning.rwplay");
 	std::cout << "I am here after sotreVelocityTimedStatePath" << std::endl;
-	//const std::vector<State> states = Models::getStatePath(*device, result, state);
-	//ofsStates(device, states, &qout);
-	
-	//int state_len = sizeof(states) / sizeof(states[0]); //wrong way to get size of states
-	//const std::vector<double> config = device->getQ(states[1]).toStdVector();
-	//for (int i = 0; i < 9; i++)
-	//{
-	//	std::cout << config[i] << " ";
-	//}
-	//std::cout << states.size() << std::endl;
-	//std::cout << config.size() << std::endl; //9
-	////std::cout << state_len; //0
+
+	return 0;
+}
+
+// only for testing strategies
+void genLineWps(std::vector<FCwp>* wps, double start, double end, int intpol)
+{
+	double inc = (end - start) / intpol;
+	for (int i = 0; i < intpol; ++i)
+	{
+		FCwp wp;
+		double next = start + inc * i;
+		if (next < end)
+		{
+			setFCwp(&wp, 0.1, -0.1, start + inc * i, SQT_2_2, 0, 0, -SQT_2_2);
+			wps->push_back(wp);
+		}
+		else
+		{
+			setFCwp(&wp, 0.1, -0.1, end, SQT_2_2, 0, 0, -SQT_2_2);
+			wps->push_back(wp);
+		}
+
+	}
+}
+
+void planForWps(QToTPlanner::Ptr planner, std::vector< Q >& begs, QPath * result, std::vector<FCwp> wps)
+{
+	for (int i = 0; i < wps.size(); ++i)
+	{
+		const Transform3D<> end = wpToTrans3D(&wps[i]);
+		plan(planner, begs[i], end, result);
+		begs.push_back(result->at(result->size() - 1));
+	}
+}
+
+void plan(QToTPlanner::Ptr planner, Q beg, const Transform3D<> end, QPath * result)
+{
+	const Q cbeg = beg;
+	if (planner->query(cbeg, end, *result)) {
+		std::cout << "Planned path with " << result->size();
+		std::cout << " configurations" << std::endl;
+	}
+
+}
+
+void setFCwp(FCwp* wp, double px, double py, double pz, double q0, double q1, double q2, double q3)
+{
+	wp->px = px;
+	wp->py = py;
+	wp->pz = pz;
+	wp->q0 = q0;
+	wp->q1 = q1;
+	wp->q2 = q2;
+	wp->q3 = q3;
+}
+
+const Transform3D<> wpToTrans3D(FCwp* wp)
+{
+	const Quaternion<> quat = Quaternion<>(wp->q0, wp->q1, wp->q2, wp->q3);
+	const Vector3D<> trans = Vector3D<>(wp->px, wp->py, wp->pz);
+	const Transform3D<> end = Transform3D<>(trans, quat.toRotation3D());
+	return end;
 }
 
 void ofsStates(const Device::Ptr device, std::vector<State> states, std::ofstream* ofs) 
