@@ -1,5 +1,0 @@
-<CollisionSetup>
-    <Exclude>
-        <FramePair first="Gantry.*" second="PA10.Base"/>
-    </Exclude>
-</CollisionSetup>

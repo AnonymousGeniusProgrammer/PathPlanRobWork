@@ -1,26 +1,8 @@
-//#define _LOADWC
+#define _LOADWC
 //#define _ROTATION_MATRIX
 //#define _RPY
 //#define _EAA
 //#define _QUATERNION
-
-
-#ifdef _LOADWC
-
-#include <rw/models/Device.hpp>
-#include <rw/models/WorkCell.hpp>
-#include <rw/loaders/WorkCellLoader.hpp>
-using namespace rw::models;
-using rw::loaders::WorkCellLoader;
-
-void printDeviceNames(const WorkCell& workcell)
-{
-	std::cout << "Workcell " << workcell << " contains devices:" << std::endl;
-	for (const Device::CPtr device : workcell.getDevices()) {
-		std::cout << "- " << device->getName() << std::endl;
-	}
-}
-#endif // _LOADWC
 
 #ifdef _ROTATION_MATRIX
 
@@ -109,6 +91,50 @@ void egQuaternion()
 #endif // _QUATERNION
 
 
+#ifdef _LOADWC
+
+#include <rw/models/Device.hpp>
+#include <rw/models/WorkCell.hpp>
+#include <rw/loaders/WorkCellLoader.hpp>
+#include <rw/common/Log.hpp>
+#include <rw/kinematics/FixedFrame.hpp>
+#include <rw/kinematics/MovableFrame.hpp>
+#include <rw/kinematics/State.hpp>
+#include <rw/models/SerialDevice.hpp>
+
+using namespace rw::models;
+using namespace rw::kinematics;
+using namespace rw::models;
+
+using rw::common::Log;
+using rw::loaders::WorkCellLoader;
+#define WC_FILE "/scenes/SinglePA10Demo/SinglePA10DemoGantry.wc.xml"
+
+void printDeviceNames(const WorkCell& workcell)
+{
+	std::cout << "Workcell " << workcell << " contains devices:" << std::endl;
+	for (const Device::CPtr device : workcell.getDevices()) {
+		std::cout << "- " << device->getName() << std::endl;
+	}
+}
+
+void findFromWorkCell(WorkCell::Ptr wc)
+{
+	// get the default state
+	State state = wc->getDefaultState();
+	Frame* worldFrame = wc->getWorldFrame();
+	// find a frame by name, remember NULL is a valid return
+	Frame* frame = wc->findFrame("FixedFrameName");
+	// find a frame by name, but with a specific frame type
+	FixedFrame* fframe = wc->findFrame<FixedFrame>("FixedFrameName");
+	MovableFrame* mframe = wc->findFrame<MovableFrame>("MovableFrameName");
+	// find a device by name
+	Device::Ptr device = wc->findDevice("SerialDeviceName");
+	SerialDevice::Ptr sdevice = wc->findDevice<SerialDevice>("SerialDeviceName");
+}
+
+#endif // _LOADWC
+
 int main(int argc, char** argv)
 {
 #ifdef _LOADWC
@@ -125,6 +151,7 @@ int main(int argc, char** argv)
 	std::cout << "Workcell " << wc->getName();
 	std::cout << " successfully loaded." << std::endl;
 	printDeviceNames(*wc);
+	findFromWorkCell(wc);
 
 #endif // LOADWC
 

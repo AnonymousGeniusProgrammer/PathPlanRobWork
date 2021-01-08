@@ -1,0 +1,9 @@
+<SerialDevice name="workpiece">
+    <Frame name="Base" type="Fixed">
+        <RPY> 0 0 0 </RPY> <Pos> 0 0 0</Pos> 
+    </Frame>
+
+    <Drawable name="Geo" refframe="Base">
+        <RPY> 0 0 0 </RPY> <Pos> 0 0 0 </Pos>
+        <Polytope file="Geometry/workpiece" /></Drawable>
+ </SerialDevice>

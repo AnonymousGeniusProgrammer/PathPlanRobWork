@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<WorkCell name="RiodScene">
+    <Frame name="RS20NWcBase" refframe="WORLD" type="Movable">
+        <Transform>1.00000 0.00000 0.00000 -1.30000 0.00000 1.00000 0.00000 0.50000 0.00000 0.00000 1.00000 0.00000 </Transform>
+    </Frame>
+    <Include file="RS20N\RS20N.rb.xml"/>
+    <Frame name="toolWcBase" refframe="RS20N.ToolMount" type="Fixed"/>
+    <Include file="Tool\tool.tl.xml"/>
+    <Frame name="machineWcBase" refframe="WORLD" type="Movable">
+        <Transform>1.00000 0.00000 0.00000 0.00000 0.00000 1.00000 0.00000 0.00000 0.00000 0.00000 1.00000 0.00000 </Transform>
+    </Frame>
+    <Include file="Machine\machine.xml"/>
+    <Frame name="workpieceWcBase" refframe="tool.TCP0" type="Fixed"/>
+    <Include file="Workpiece\workpiece.xml"/>
+</WorkCell>

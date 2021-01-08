@@ -1,0 +1,16 @@
+<TreeDevice name="tool">
+
+<Frame name="Base" type="Fixed">
+  <RPY>0.0 0.0 0.0</RPY>
+  <Pos>0.0 0.0 0.0</Pos>
+</Frame>
+<Frame name="TCP0" refframe="Base" type="EndEffector">
+  <RPY>0.0 0.0 0.0</RPY>
+  <Pos>0.0 0.0 0.302</Pos>
+</Frame>
+
+<Drawable name="ToolUnit" refframe="Base">
+    <RPY>0 0 90</RPY> <Pos>0.0 0 0.0</Pos>
+    <Polytope file="Geometry/tool"/> </Drawable>
+
+</TreeDevice>
