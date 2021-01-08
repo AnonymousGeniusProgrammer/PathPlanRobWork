@@ -66,7 +66,7 @@ void setFCwp(FCwp* wp, double px, double py, double pz, double q0, double q1, do
 
 void plan(QToTPlanner::Ptr planner, Q beg, const Transform3D<> end, QPath* result);
 
-void planForWps(QToTPlanner::Ptr planner, std::vector< Q >& begs, QPath * result, std::vector<FCwp> wps);
+void planForWps(QToTPlanner::Ptr planner, std::vector< Q >& begs, QPath * result, QPath * wp_in_csp, std::vector<FCwp> wps);
 
 void genLineWps(std::vector<FCwp>* wps, double start, double end, int intpol);
 
@@ -121,24 +121,46 @@ int main(int argc, char** argv)
 	
 	// starting points for planning iterations
 	std::vector<Q> begs;
+	std::vector<Q> begs_1;
 	Q init = cinit;
 	begs.push_back(init);
-	
+
 	// ending opints for planning iterations
 	std::vector<FCwp> wps;
+	std::vector<FCwp> wps_1;
 
 	// resulting path in configuration space
 	QPath result;
+	QPath wp_in_csp;
+	//QPath result1;
 	std::ofstream qout;
 	
-	genLineWps(&wps, 0.55, 0.8, 3);
+	genLineWps(&wps, 0.55, 1, 5);
+	planForWps(planner, begs, &result, &wp_in_csp, wps);
+	//const size_t ind_end = result.size() - 1;
+	//begs_1.push_back(result[result.size() - 1]);
+	//std::cout << "get new starting point for next segment planning from end config in previous segment." << std::endl;
 
-	planForWps(planner, begs, &result, wps);
+	//genLineWps(&wps_1, 1, 1, 1);
+	//std::cout << "generating new wps for next segment." << std::endl;
+
+	// Adding new constraints in this segment!
+	/*Device::QBox bounds = Device::QBox();*/
+	
+	//planForWps(planner, begs_1, &result, wps_1);
+	
+	//const size_t ind_end_1 = result.size() - 1;
+	//QPath c_end;
+	//c_end.push_back(result[ind_end]);
+	//c_end.push_back(result[ind_end_1]);
 
 	const std::vector<State> states = Models::getStatePath(*device, result, state);
+
+	const std::vector<State> states_1 = Models::getStatePath(*device, wp_in_csp, state);
 	ofsResults(result, &qout);
 	std::cout << "I am here after ofsStates" << std::endl;
 	PathLoader::storeVelocityTimedStatePath(*wc, states, "../../out/ex-path-planning.rwplay");
+	//PathLoader::storeVelocityTimedStatePath(*wc, states_1, "../../out/ex-path-planning.rwplay");
 	std::cout << "I am here after sotreVelocityTimedStatePath" << std::endl;
 
 	return 0;
@@ -166,19 +188,22 @@ void genLineWps(std::vector<FCwp>* wps, double start, double end, int intpol)
 	}
 }
 
-void planForWps(QToTPlanner::Ptr planner, std::vector< Q >& begs, QPath * result, std::vector<FCwp> wps)
+void planForWps(QToTPlanner::Ptr planner, std::vector< Q >& begs, QPath * result, QPath * wp_in_csp, std::vector<FCwp> wps)
 {
 	for (int i = 0; i < wps.size(); ++i)
 	{
 		const Transform3D<> end = wpToTrans3D(&wps[i]);
 		plan(planner, begs[i], end, result);
 		begs.push_back(result->at(result->size() - 1));
+		wp_in_csp->push_back(result->at(result->size() - 1));
 	}
 }
 
 void plan(QToTPlanner::Ptr planner, Q beg, const Transform3D<> end, QPath * result)
 {
+	std::cout << beg << std::endl;
 	const Q cbeg = beg;
+	/*std::cout << cbeg << std::endl;*/
 	if (planner->query(cbeg, end, *result)) {
 		std::cout << "Planned path with " << result->size();
 		std::cout << " configurations" << std::endl;
